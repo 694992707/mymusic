@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!DOCTYPE html> 
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8" />
@@ -703,13 +703,13 @@
   </div>
 </div>
 
-<!-- 关键：去掉 crossorigin，增加移动端属性 -->
+<!-- 关键：移动端属性 + metadata 预加载 -->
 <audio
   id="audio"
   playsinline
   webkit-playsinline
   x5-playsinline
-  preload="none"
+  preload="metadata"
 ></audio>
 
 <script>
@@ -799,7 +799,7 @@
     dom.audio.addEventListener("loadedmetadata", onLoadedMetadata);
     dom.audio.addEventListener("ended", () => playOffset(1));
 
-    // 新增：错误事件，便于排查移动端问题
+    // 错误事件
     dom.audio.addEventListener("error", () => {
       const err = dom.audio.error;
       let msg = "未知错误";
@@ -1159,6 +1159,8 @@
     }
 
     dom.audio.src = playUrl;
+    dom.audio.load(); // 移动端有时需要显式 load 一下
+
     dom.audio.play().then(() => {
       state.isPlaying = true;
       dom.nowStatus.textContent = "播放中";
@@ -1202,33 +1204,50 @@
     };
   }
 
-  function onTimeUpdate() {
-    const cur = dom.audio.currentTime || 0;
-    const dur = dom.audio.duration || 0;
-    if (!isNaN(cur) && !isNaN(dur) && dur > 0) {
-      dom.progress.value = (cur / dur) * 100;
-      dom.timeLabel.textContent = formatTime(cur);
-      dom.durationLabel.textContent = formatTime(dur);
-    }
-  }
-
-  function onLoadedMetadata() {
-    const dur = dom.audio.duration || 0;
-    dom.durationLabel.textContent = formatTime(dur);
-  }
-
-  function onSeek() {
-    const dur = dom.audio.duration || 0;
-    if (!dur || isNaN(dur)) return;
-    const pct = parseFloat(dom.progress.value) / 100;
-    dom.audio.currentTime = dur * pct;
-  }
-
+  // 修改版：防止 NaN / Infinity
   function formatTime(sec) {
-    sec = Math.floor(sec || 0);
+    if (!Number.isFinite(sec) || sec < 0) {
+      return "00:00";
+    }
+    sec = Math.floor(sec);
     const m = String(Math.floor(sec / 60)).padStart(2, "0");
     const s = String(sec % 60).padStart(2, "0");
     return m + ":" + s;
+  }
+
+  // 修改版：只在拿到正常时长时更新
+  function onLoadedMetadata() {
+    const dur = dom.audio.duration;
+    if (Number.isFinite(dur) && dur > 0) {
+      dom.durationLabel.textContent = formatTime(dur);
+    } else {
+      dom.durationLabel.textContent = "--:--";
+    }
+  }
+
+  // 修改版：即便拿不到 duration，也更新当前时间
+  function onTimeUpdate() {
+    const cur = dom.audio.currentTime;
+    const dur = dom.audio.duration;
+
+    if (!Number.isNaN(cur)) {
+      dom.timeLabel.textContent = formatTime(cur);
+    }
+
+    if (Number.isFinite(dur) && dur > 0) {
+      dom.durationLabel.textContent = formatTime(dur);
+      dom.progress.value = (cur / dur) * 100;
+    } else {
+      // 拿不到总时长时，进度条先保持 0
+      dom.progress.value = 0;
+    }
+  }
+
+  function onSeek() {
+    const dur = dom.audio.duration;
+    if (!Number.isFinite(dur) || dur <= 0) return;
+    const pct = parseFloat(dom.progress.value) / 100;
+    dom.audio.currentTime = dur * pct;
   }
 
   async function loadLyricsForTrack(track) {
