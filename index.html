@@ -1,3 +1,612 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<title>Mini QQ Music - Modern Player</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<style>
+/* --- 全局与重置 --- */
+:root {
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --bg-color: #0c0a09;
+  --panel-bg: rgba(23, 23, 23, 0.6);
+  --panel-border: rgba(255, 255, 255, 0.1);
+  --text-primary: #f5f5f5;
+  --text-secondary: #a3a3a3;
+  --text-muted: #737373;
+  --accent-color: #3b82f6;
+  --accent-hover: #60a5fa;
+  --hover-bg: rgba(255, 255, 255, 0.07);
+  --active-bg: rgba(0, 0, 0, 0.2);
+  --border-radius-md: 12px;
+  --border-radius-lg: 16px;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  scrollbar-width: thin;
+  scrollbar-color: var(--text-muted) transparent;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--text-muted);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-secondary);
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--bg-color);
+  background-image:
+    radial-gradient(circle at 15% 50%, rgba(59, 130, 246, 0.2), transparent 40%),
+    radial-gradient(circle at 85% 30%, rgba(139, 92, 246, 0.15), transparent 40%);
+  color: var(--text-primary);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* --- 头部 --- */
+header {
+  padding: 14px 24px;
+  backdrop-filter: blur(12px);
+  background: rgba(12, 10, 9, 0.7);
+  border-bottom: 1px solid var(--panel-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  flex-shrink: 0;
+}
+header .title {
+  font-size: 20px;
+  font-weight: 600;
+}
+header .title span {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-left: 10px;
+  font-weight: 400;
+}
+header .controls {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font-size: 13px;
+}
+
+/* --- 表单控件 --- */
+select, input, button {
+  background: rgba(38, 38, 38, 0.8);
+  border: 1px solid var(--panel-border);
+  color: var(--text-primary);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 13px;
+  outline: none;
+  transition: all 0.2s ease;
+}
+select:focus, input:focus {
+  border-color: var(--accent-color);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+}
+button {
+  cursor: pointer;
+}
+button:hover {
+  background: var(--hover-bg);
+  border-color: var(--accent-hover);
+}
+button:active {
+  transform: scale(0.96);
+  background: var(--active-bg);
+}
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* --- 主体布局 --- */
+main {
+  flex: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 2.2fr) minmax(0, 1.4fr);
+  gap: 18px;
+  padding: 18px;
+  min-height: 0;
+}
+
+.panel {
+  background: var(--panel-bg);
+  border-radius: var(--border-radius-lg);
+  border: 1px solid var(--panel-border);
+  backdrop-filter: blur(20px);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+}
+
+.panel-title {
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.panel-title small {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-weight: 400;
+}
+
+/* --- 左侧面板 --- */
+.search-bar {
+  display: flex;
+  gap: 10px;
+}
+.search-bar input {
+  flex: 1;
+}
+.search-bar button {
+  flex-shrink: 0;
+}
+
+.list {
+  border-radius: var(--border-radius-md);
+  border: 1px solid var(--panel-border);
+  background: rgba(0,0,0,0.1);
+  overflow: auto;
+  min-height: 0;
+}
+.list-item {
+  padding: 10px 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+.list-item:last-child {
+  border-bottom: none;
+}
+.list-item:hover {
+  background: var(--hover-bg);
+}
+.list-main {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  flex: 1;
+}
+.list-title {
+  font-size: 14px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: 500;
+}
+.list-sub {
+  font-size: 12px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.list-actions {
+  display: flex;
+  flex-shrink: 0;
+  gap: 8px;
+  align-items: center;
+}
+.list-actions button {
+  padding: 5px 10px;
+  font-size: 12px;
+}
+.tag {
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--text-muted);
+  color: var(--text-secondary);
+  background: rgba(255,255,255,0.05);
+}
+
+.toplist-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 12px;
+  overflow: auto;
+}
+.toplist-card {
+  background: rgba(0,0,0,0.15);
+  border-radius: var(--border-radius-md);
+  border: 1px solid var(--panel-border);
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.toplist-card:hover {
+  background: var(--hover-bg);
+  border-color: var(--accent-hover);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+.toplist-cover {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  border-radius: 8px;
+  object-fit: cover;
+  background: #1c1917;
+}
+.toplist-name {
+  font-size: 13px;
+  line-height: 1.4;
+  font-weight: 500;
+  max-height: 2.8em;
+  overflow: hidden;
+}
+.toplist-meta {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* --- 右侧面板 (播放器核心) --- */
+.now-playing {
+  display: flex;
+  gap: 16px;
+}
+.now-cover {
+  width: 120px;
+  height: 120px;
+  border-radius: var(--border-radius-md);
+  background: #1c1917;
+  border: 1px solid var(--panel-border);
+  object-fit: cover;
+  flex-shrink: 0;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+  transition: all 0.3s ease;
+}
+.now-cover:hover {
+  transform: scale(1.05);
+  box-shadow: 0 8px 25px rgba(59, 130, 246, 0.4);
+}
+.now-meta {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  justify-content: center;
+}
+.now-title {
+  font-size: 18px;
+  font-weight: 600;
+}
+.now-artist {
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+.now-album {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+.player-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: auto;
+}
+.player-controls button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  border: 1px solid var(--panel-border);
+  background: transparent;
+  width: 38px;
+  height: 38px;
+  padding: 0;
+}
+.player-controls button.main {
+  width: 50px;
+  height: 50px;
+  background: var(--accent-color);
+  border: none;
+}
+.player-controls button.main:hover {
+  background: var(--accent-hover);
+}
+.player-controls button svg {
+  width: 20px;
+  height: 20px;
+  fill: var(--text-primary);
+}
+.player-controls button.main svg {
+  width: 24px;
+  height: 24px;
+}
+
+.slider-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 6px;
+}
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 5px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 5px;
+  outline: none;
+  cursor: pointer;
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  background: var(--text-primary);
+  border-radius: 50%;
+  border: none;
+  transition: background 0.2s ease;
+}
+input[type="range"]::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  background: var(--text-primary);
+  border-radius: 50%;
+  border: none;
+  transition: background 0.2s ease;
+}
+input[type="range"]:hover::-webkit-slider-thumb {
+  background: var(--accent-hover);
+}
+input[type="range"]:hover::-moz-range-thumb {
+  background: var(--accent-hover);
+}
+.slider-row .label {
+  font-size: 11px;
+  color: var(--text-secondary);
+  width: 40px;
+  text-align: center;
+}
+
+.lyrics {
+  margin-top: 10px;
+  border-radius: var(--border-radius-md);
+  border: 1px solid var(--panel-border);
+  background: rgba(0,0,0,0.1);
+  padding: 12px;
+  height: 140px;
+  overflow: auto;
+  font-size: 13px;
+  line-height: 1.7;
+  white-space: pre-wrap;
+  color: var(--text-secondary);
+}
+
+.current-playlist-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 13px;
+  margin-bottom: 4px;
+}
+.current-playlist-header small {
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+.current-playlist-list .list-item.active {
+  background: var(--accent-color);
+  color: white;
+}
+.current-playlist-list .list-item.active .list-sub {
+  color: rgba(255,255,255,0.8);
+}
+
+/* --- 页脚 --- */
+footer {
+  padding: 8px 24px 10px;
+  font-size: 11px;
+  color: var(--text-muted);
+  border-top: 1px solid var(--panel-border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+footer a {
+  color: var(--accent-hover);
+  text-decoration: none;
+}
+footer a:hover {
+  text-decoration: underline;
+}
+
+/* --- 响应式适配 (移动端优先) --- */
+@media (max-width: 768px) {
+  body {
+    overflow: visible;
+  }
+  
+  header .title span {
+      display: none; /* 在小屏幕上隐藏副标题 */
+  }
+
+  main {
+    grid-template-columns: 1fr;
+    height: auto;
+    overflow: visible;
+    padding: 10px;
+    gap: 10px;
+  }
+
+  .panel {
+    padding: 12px;
+  }
+  
+  .now-playing {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+  .now-cover {
+    width: 60%;
+    max-width: 200px;
+    height: auto;
+  }
+  .now-meta {
+    width: 100%;
+    gap: 8px;
+  }
+  .player-controls {
+    justify-content: center;
+  }
+
+  .list-item {
+    padding: 8px 10px;
+  }
+
+  .lyrics {
+    height: 120px;
+  }
+  
+  footer {
+    flex-direction: column;
+    text-align: center;
+    gap: 4px;
+    padding: 10px;
+  }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="title">
+    Mini QQ Music
+    <span>本地单文件播放器 · 基于 TuneHub API</span>
+  </div>
+  <div class="controls">
+    <label>
+      平台：
+      <select id="source-select">
+        <option value="qq">QQ 音乐</option>
+        <option value="netease">网易云</option>
+        <option value="kuwo">酷我</option>
+      </select>
+    </label>
+    <label>
+      模式：
+      <select id="search-mode">
+        <option value="search">当前平台</option>
+        <option value="aggregateSearch">聚合搜索</option>
+      </select>
+    </label>
+  </div>
+</header>
+
+<main>
+  <!-- 左侧：搜索 + 推荐歌单 -->
+  <section class="panel">
+    <div class="panel-title">
+      <span>歌曲搜索</span>
+      <small>支持歌名 / 歌手 / 专辑</small>
+    </div>
+    <div class="search-bar">
+      <input id="search-input" placeholder="输入关键词，例如：周杰伦" />
+      <button id="search-btn">搜索</button>
+    </div>
+    <div id="search-results" class="list" aria-label="搜索结果"></div>
+    <div class="panel-title" style="margin-top:10px;">
+      <span>推荐歌单 / 榜单</span>
+      <small id="toplist-subtitle">基于所选平台的官方榜单</small>
+    </div>
+    <div id="toplist-container" class="toplist-grid"></div>
+  </section>
+
+  <!-- 右侧：正在播放 + 当前歌单 -->
+  <section class="panel">
+    <div class="panel-title">
+      <span>正在播放</span>
+      <small id="now-status">空闲</small>
+    </div>
+    <div class="now-playing">
+      <img id="now-cover" class="now-cover" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="封面" />
+      <div class="now-meta">
+        <div id="now-title" class="now-title">尚未播放歌曲</div>
+        <div id="now-artist" class="now-artist">选择一首歌或歌单开始播放</div>
+        <div id="now-album" class="now-album"></div>
+        <div class="player-controls">
+          <button id="btn-prev" title="上一首">
+             <svg viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"></path></svg>
+          </button>
+          <button id="btn-play" class="main" title="播放/暂停">
+            <svg id="play-icon" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"></path></svg>
+            <svg id="pause-icon" viewBox="0 0 24 24" style="display: none;"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"></path></svg>
+          </button>
+          <button id="btn-next" title="下一首">
+            <svg viewBox="0 0 24 24"><path d="M16 6h2v12h-2zm-4.5 6l-8.5 6V6z"></path></svg>
+          </button>
+        </div>
+        <div class="slider-row">
+          <span class="label" id="time-label">00:00</span>
+          <input type="range" id="progress" min="0" max="100" value="0" title="进度"/>
+          <span class="label" id="duration-label">00:00</span>
+        </div>
+        <div class="slider-row">
+          <span class="label">音量</span>
+          <input type="range" id="volume" min="0" max="1" step="0.01" value="0.8" title="音量"/>
+        </div>
+      </div>
+    </div>
+    <div class="panel-title" style="margin-top:8px;">
+      <span>歌词</span>
+      <small id="lyrics-status"></small>
+    </div>
+    <div id="lyrics" class="lyrics"></div>
+    <div class="current-playlist-header" style="margin-top:10px;">
+      <span>当前歌单</span>
+      <small id="playlist-info">暂无歌单</small>
+    </div>
+    <div id="current-playlist" class="list current-playlist-list"></div>
+  </section>
+</main>
+
+<footer>
+  <span>仅供学习交流，音频内容均来自各音乐平台，请勿商用。</span>
+  <span>API：<a href="https://music-dl.sayqz.com/" target="_blank" rel="noreferrer">TuneHub</a></span>
+</footer>
+
+<audio id="audio" crossorigin="anonymous"></audio>
+
 <script>
 // JavaScript 代码，已针对移动端播放策略进行优化
 const API_BASE = "https://music-dl.sayqz.com/api/";
@@ -449,3 +1058,5 @@ async function loadLyricsForTrack(track) {
   }
 }
 </script>
+</body>
+</html>
