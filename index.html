@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#10b981">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Gemini Music</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        emerald: { 400: '#34d399', 500: '#10b981', 600: '#059669' },
+                        gray: { 50: '#f9fafb', 100: '#f3f4f6', 200: '#e5e7eb', 800: '#1f2937', 900: '#111827' }
+                    },
+                    animation: { 'spin-slow': 'spin 8s linear infinite' }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
+        ::-webkit-scrollbar { width: 4px; height: 4px; } /* Thinner scrollbar for mobile feel */
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 2px; }
+        input[type="range"] { -webkit-appearance: none; background: transparent; }
+        input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; height: 12px; width: 12px; border-radius: 50%; background: #10b981; margin-top: -5px; box-shadow: 0 1px 2px rgba(0,0,0,0.2); }
+        input[type="range"]::-webkit-slider-runnable-track { width: 100%; height: 3px; cursor: pointer; background: #e5e7eb; border-radius: 2px; }
+        .line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+<body class="bg-white text-gray-800 h-screen flex overflow-hidden selection:bg-emerald-100 selection:text-emerald-800">
+
+    <!-- Mobile Menu Overlay -->
+    <div id="mobile-menu" class="fixed inset-0 z-50 bg-gray-900/50 backdrop-blur-sm hidden transition-opacity md:hidden" onclick="toggleMobileMenu()">
+        <div class="absolute left-0 top-0 bottom-0 w-64 bg-white shadow-2xl transform transition-transform duration-300 -translate-x-full" id="mobile-menu-panel" onclick="event.stopPropagation()">
+            <div class="h-16 flex items-center px-6 border-b border-gray-100">
+                <div class="w-8 h-8 bg-emerald-500 rounded-full flex items-center justify-center text-white shadow-md">
+                    <i class="fa-solid fa-music"></i>
+                </div>
+                <span class="font-bold text-lg ml-3 text-gray-900">Gemini Music</span>
+            </div>
+            <nav class="p-4 space-y-1">
+                <a href="#" onclick="switchTab('explore'); toggleMobileMenu()" class="flex items-center gap-3 px-3 py-3 rounded-lg bg-emerald-50 text-emerald-700 font-medium">
+                    <i class="fa-solid fa-thumbs-up w-5 text-center"></i> Recommendation
+                </a>
+                <a href="#" class="flex items-center gap-3 px-3 py-3 rounded-lg text-gray-600 font-medium hover:bg-gray-50">
+                    <i class="fa-solid fa-heart w-5 text-center"></i> I Like
+                </a>
+                 <a href="#" class="flex items-center gap-3 px-3 py-3 rounded-lg text-gray-600 font-medium hover:bg-gray-50">
+                    <i class="fa-solid fa-clock-rotate-left w-5 text-center"></i> History
+                </a>
+            </nav>
+        </div>
+    </div>
+
+    <!-- Sidebar (Desktop) -->
+    <aside class="w-64 bg-gray-50 hidden md:flex flex-col border-r border-gray-200">
+        <div class="h-16 flex items-center px-6 gap-3">
+            <div class="w-8 h-8 bg-emerald-500 rounded-full flex items-center justify-center text-white shadow-md shadow-emerald-200">
+                <i class="fa-solid fa-music"></i>
+            </div>
+            <span class="font-bold text-lg tracking-tight text-gray-900">Gemini Music</span>
+        </div>
+        <nav class="flex-1 overflow-y-auto py-4 px-3 space-y-1">
+            <div class="px-3 mb-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">Online</div>
+            <a href="#" onclick="switchTab('explore')" id="nav-explore" class="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-emerald-500 text-white shadow-sm transition-all font-medium">
+                <i class="fa-solid fa-thumbs-up w-5 text-center"></i> Recommendation
+            </a>
+            <a href="#" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-all font-medium">
+                <i class="fa-solid fa-compact-disc w-5 text-center"></i> Music Hall
+            </a>
+            <div class="px-3 mt-6 mb-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">My Music</div>
+            <a href="#" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-all font-medium">
+                <i class="fa-solid fa-heart w-5 text-center"></i> I Like
+            </a>
+            <a href="#" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-all font-medium">
+                <i class="fa-solid fa-clock-rotate-left w-5 text-center"></i> History
+            </a>
+        </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <div class="flex-1 flex flex-col min-w-0 bg-white relative">
+        <!-- Top Bar -->
+        <header class="h-16 flex items-center justify-between px-4 md:px-8 border-b border-transparent shrink-0">
+            <div class="flex items-center gap-4">
+                <button onclick="toggleMobileMenu()" class="md:hidden text-gray-500 hover:text-gray-900">
+                    <i class="fa-solid fa-bars text-xl"></i>
+                </button>
+                <div class="hidden md:flex items-center gap-4 text-gray-400">
+                    <button class="hover:text-gray-600"><i class="fa-solid fa-chevron-left"></i></button>
+                    <button class="hover:text-gray-600"><i class="fa-solid fa-chevron-right"></i></button>
+                </div>
+            </div>
+
+            <!-- Search -->
+            <div class="flex-1 max-w-xl mx-4 md:mx-8 relative group">
+                <div class="absolute inset-y-0 left-0 pl-3 md:pl-4 flex items-center pointer-events-none">
+                    <i class="fa-solid fa-magnifying-glass text-gray-400 group-focus-within:text-emerald-500 text-sm"></i>
+                </div>
+                <input type="text" id="search-input" 
+                    placeholder="Search..." 
+                    class="block w-full pl-9 md:pl-11 pr-4 py-2 bg-gray-100 border-none rounded-full text-sm text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:bg-white transition-all shadow-sm">
+            </div>
+
+            <!-- Settings -->
+            <div class="flex items-center gap-3 md:gap-5 text-gray-500">
+                <div class="relative flex items-center gap-2 bg-gray-100 rounded-full px-2 py-1 md:px-3 text-xs">
+                    <span class="text-gray-400 hidden md:inline">Source:</span>
+                    <select id="source-select" class="bg-transparent border-none outline-none font-medium text-gray-700 cursor-pointer text-xs md:text-sm">
+                        <option value="qq">QQ</option>
+                        <option value="netease">NetEase</option>
+                        <option value="kuwo">Kuwo</option>
+                    </select>
+                </div>
+            </div>
+        </header>
+
+        <!-- Scrollable Area -->
+        <main id="main-scroll" class="flex-1 overflow-y-auto p-4 md:p-8 scrollbar-thin pb-32">
+            
+            <!-- Explore Tab -->
+            <div id="view-explore" class="space-y-6 md:space-y-8 fade-in">
+                <!-- Banner -->
+                <div class="relative h-40 md:h-48 rounded-2xl bg-gradient-to-r from-emerald-400 to-teal-500 shadow-xl overflow-hidden flex items-center px-6 md:px-10 text-white">
+                    <div class="relative z-10 max-w-2xl">
+                        <h1 class="text-2xl md:text-3xl font-bold mb-2">Gemini AI DJ</h1>
+                        <p class="text-emerald-50 text-xs md:text-sm mb-4 md:mb-6 opacity-90 max-w-lg line-clamp-2">Let AI curate the perfect soundtrack for your mood.</p>
+                        <div class="flex gap-3">
+                            <button class="px-4 py-1.5 md:px-5 md:py-2 bg-white text-emerald-600 rounded-full text-xs md:text-sm font-bold shadow-lg flex items-center gap-2 active:scale-95 transition-transform">
+                                <i class="fa-solid fa-bolt"></i> <span class="hidden md:inline">Workout</span>
+                            </button>
+                            <button class="px-4 py-1.5 md:px-5 md:py-2 bg-white/20 backdrop-blur-md text-white rounded-full text-xs md:text-sm font-medium flex items-center gap-2 border border-white/30 active:scale-95 transition-transform">
+                                <i class="fa-solid fa-cloud-rain"></i> <span class="hidden md:inline">Sad</span>
+                            </button>
+                        </div>
+                    </div>
+                    <i class="fa-solid fa-robot absolute -bottom-4 -right-4 text-8xl md:text-9xl text-white opacity-10 rotate-12"></i>
+                </div>
+
+                <!-- Import -->
+                <div class="bg-gray-50 border border-gray-100 rounded-xl p-3 md:p-4 flex flex-col md:flex-row md:items-center justify-between gap-3">
+                     <div class="flex items-center gap-3 text-gray-600">
+                         <div class="w-8 h-8 md:w-10 md:h-10 bg-white rounded-full flex items-center justify-center shadow-sm text-emerald-500 shrink-0"><i class="fa-solid fa-link"></i></div>
+                         <div class="text-sm">
+                             <div class="font-semibold text-gray-900">Import Playlist</div>
+                             <div class="text-xs text-gray-500 hidden md:block">Paste an ID from the selected platform</div>
+                         </div>
+                     </div>
+                     <div class="flex gap-2">
+                         <input id="import-input" type="text" placeholder="ID..." class="flex-1 bg-white border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-emerald-500 w-full md:w-40">
+                         <button id="btn-import" class="text-sm bg-gray-900 text-white px-4 py-1.5 rounded-lg active:bg-emerald-600 transition-colors whitespace-nowrap">Load</button>
+                     </div>
+                </div>
+
+                <!-- Grid -->
+                <div>
+                    <h2 class="text-lg md:text-xl font-bold text-gray-900 mb-4">Recommended</h2>
+                    <div id="toplist-grid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-6">
+                        <!-- Content -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Search Tab -->
+            <div id="view-search" class="hidden">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-lg font-bold text-gray-900">Results</h2>
+                    <button onclick="switchTab('explore')" class="text-xs text-gray-500 hover:text-emerald-600 px-2 py-1">Back</button>
+                </div>
+                <div id="search-results" class="space-y-2"></div>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- Player Bar -->
+    <footer class="h-20 md:h-24 bg-white border-t border-gray-200 flex flex-col md:flex-row items-center px-4 md:px-6 fixed bottom-0 w-full z-40 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] pb-safe-area">
+        
+        <!-- Mobile Progress Bar (Top of footer) -->
+        <div class="w-full md:hidden absolute top-0 left-0 h-1 bg-gray-100">
+            <div id="mobile-progress-fill" class="h-full bg-emerald-500 w-0"></div>
+        </div>
+
+        <div class="w-full h-full flex items-center justify-between gap-2">
+            <!-- Track Info -->
+            <div class="flex items-center gap-3 flex-1 min-w-0">
+                <div class="w-10 h-10 md:w-14 md:h-14 rounded-lg bg-gray-100 border border-gray-200 overflow-hidden relative group flex-shrink-0" onclick="toggleLyrics()">
+                    <img id="player-cover" src="" class="w-full h-full object-cover hidden">
+                    <div id="player-placeholder" class="w-full h-full flex items-center justify-center text-gray-300">
+                        <i class="fa-solid fa-music text-lg md:text-xl"></i>
+                    </div>
+                </div>
+                <div class="min-w-0 flex-1" onclick="toggleLyrics()">
+                    <h4 id="player-title" class="font-bold text-gray-900 truncate text-sm md:text-sm">No Song</h4>
+                    <p id="player-artist" class="text-xs text-gray-500 truncate">Select a song</p>
+                </div>
+                <!-- Mobile Play Button (Right side on tiny screens if needed, but handled in center) -->
+            </div>
+
+            <!-- Controls (Center) -->
+            <div class="flex flex-col items-center justify-center gap-1 md:flex-1 md:max-w-2xl">
+                <div class="flex items-center gap-4 md:gap-8">
+                    <button id="btn-prev" class="text-gray-800 active:text-emerald-600 text-lg md:text-lg p-2"><i class="fa-solid fa-backward-step"></i></button>
+                    
+                    <button id="btn-play" class="w-10 h-10 md:w-10 md:h-10 rounded-full bg-emerald-500 text-white flex items-center justify-center active:bg-emerald-600 shadow-lg shadow-emerald-200 transform active:scale-95 transition-all">
+                        <i class="fa-solid fa-play ml-0.5 text-sm"></i>
+                    </button>
+                    
+                    <button id="btn-next" class="text-gray-800 active:text-emerald-600 text-lg md:text-lg p-2"><i class="fa-solid fa-forward-step"></i></button>
+                </div>
+                <!-- Desktop Progress -->
+                <div class="hidden md:flex w-full items-center gap-3 text-[10px] text-gray-400 font-medium md:min-w-[300px]">
+                    <span id="time-current" class="w-8 text-right font-mono">00:00</span>
+                    <div class="flex-1 relative h-1 bg-gray-200 rounded-full group">
+                        <input id="progress-bar" type="range" min="0" max="100" value="0" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10">
+                        <div id="progress-fill" class="h-full bg-emerald-500 rounded-full w-0 relative">
+                            <div class="absolute right-0 top-1/2 -translate-y-1/2 w-2.5 h-2.5 bg-white border border-gray-200 rounded-full shadow-sm opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
+                        </div>
+                    </div>
+                    <span id="time-total" class="w-8 font-mono">00:00</span>
+                </div>
+            </div>
+
+            <!-- Volume & Queue (Desktop Only) -->
+            <div class="hidden md:flex items-center justify-end gap-5 text-gray-400 flex-1">
+                <div class="flex items-center gap-2 group">
+                    <i class="fa-solid fa-volume-high text-xs group-hover:text-emerald-600"></i>
+                    <div class="w-20 h-1 bg-gray-200 rounded-full overflow-hidden relative">
+                         <div class="absolute inset-0 bg-gray-300 w-[80%] group-hover:bg-emerald-500"></div>
+                    </div>
+                </div>
+                <button id="btn-queue-toggle" class="hover:text-gray-800 transition-colors relative">
+                    <i class="fa-solid fa-list-ul"></i>
+                    <span id="queue-count" class="absolute -top-2 -right-2 bg-emerald-500 text-white text-[9px] font-bold px-1 rounded-full hidden">0</span>
+                </button>
+            </div>
+            
+            <!-- Mobile Queue Button -->
+             <button onclick="toggleQueueMobile()" class="md:hidden text-gray-500 p-2">
+                <i class="fa-solid fa-list-ul"></i>
+            </button>
+        </div>
+    </footer>
+
+    <!-- Queue Panel (Responsive) -->
+    <div id="queue-panel" class="fixed inset-0 md:inset-auto md:bottom-24 md:right-6 md:w-80 bg-white/95 md:bg-white backdrop-blur-md md:rounded-xl shadow-2xl border border-gray-100 hidden z-50 flex flex-col transition-all">
+        <div class="px-4 py-4 border-b border-gray-100 flex items-center justify-between bg-gray-50/80 rounded-t-xl">
+            <span class="text-sm font-bold text-gray-800">Queue</span>
+            <button id="btn-close-queue" class="text-gray-400 p-2"><i class="fa-solid fa-xmark text-lg"></i></button>
+        </div>
+        <div id="queue-list" class="flex-1 overflow-y-auto p-2 scrollbar-thin pb-24 md:pb-2">
+            <div class="text-center text-xs text-gray-400 py-10">Queue is empty</div>
+        </div>
+    </div>
+
+    <!-- Lyrics Modal -->
+    <div id="lyrics-modal" class="fixed inset-0 bg-white z-[60] hidden flex flex-col transition-opacity">
+        <div class="flex items-center justify-between p-6">
+             <button class="text-gray-400 hover:text-gray-800" onclick="toggleLyrics()"><i class="fa-solid fa-chevron-down text-2xl"></i></button>
+             <div class="text-center">
+                 <div class="text-xs text-emerald-500 font-bold tracking-widest uppercase">Now Playing</div>
+             </div>
+             <button class="text-gray-400"><i class="fa-solid fa-ellipsis text-xl"></i></button>
+        </div>
+        <div class="flex-1 overflow-y-auto px-8 pb-32 text-center space-y-6 scroll-smooth" id="lyrics-container">
+            <!-- Lyrics -->
+        </div>
+        <div class="p-8 pb-12 bg-gradient-to-t from-white via-white to-transparent">
+             <h2 id="lyrics-title" class="text-2xl font-bold text-gray-900 mb-1">Title</h2>
+             <p id="lyrics-artist" class="text-emerald-600 font-medium mb-6">Artist</p>
+             <!-- Mini Controls for Lyrics View -->
+             <div class="flex justify-center gap-10 items-center">
+                 <button onclick="dom.btnPrev.click()" class="text-3xl text-gray-800"><i class="fa-solid fa-backward-step"></i></button>
+                 <button onclick="dom.btnPlay.click()" id="lyrics-btn-play" class="w-16 h-16 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-xl"><i class="fa-solid fa-play ml-1 text-2xl"></i></button>
+                 <button onclick="dom.btnNext.click()" class="text-3xl text-gray-800"><i class="fa-solid fa-forward-step"></i></button>
+             </div>
+        </div>
+    </div>
+
+    <audio id="audio-player" crossorigin="anonymous" playsinline></audio>
+
+    <script>
+        // --- API & State ---
+        const API_BASE = "https://music-dl.sayqz.com/api/";
+        
+        const state = {
+            source: 'qq',
+            playlist: [],
+            currentIndex: -1,
+            isPlaying: false,
+            lyrics: [],
+            searchResults: []
+        };
+
+        const $ = (id) => document.getElementById(id);
+        const dom = {
+            searchInput: $('search-input'),
+            sourceSelect: $('source-select'),
+            mainScroll: $('main-scroll'),
+            viewExplore: $('view-explore'),
+            viewSearch: $('view-search'),
+            toplistGrid: $('toplist-grid'),
+            searchResults: $('search-results'),
+            importInput: $('import-input'),
+            btnImport: $('btn-import'),
+            
+            // Player
+            audio: $('audio-player'),
+            btnPlay: $('btn-play'),
+            btnPrev: $('btn-prev'),
+            btnNext: $('btn-next'),
+            progressBar: $('progress-bar'),
+            progressFill: $('progress-fill'),
+            mobileProgressFill: $('mobile-progress-fill'),
+            timeCurrent: $('time-current'),
+            timeTotal: $('time-total'),
+            
+            playerCover: $('player-cover'),
+            playerPlaceholder: $('player-placeholder'),
+            playerTitle: $('player-title'),
+            playerArtist: $('player-artist'),
+            
+            // Queue
+            btnQueueToggle: $('btn-queue-toggle'),
+            btnCloseQueue: $('btn-close-queue'),
+            queuePanel: $('queue-panel'),
+            queueList: $('queue-list'),
+            queueCount: $('queue-count'),
+            
+            // Lyrics
+            lyricsModal: $('lyrics-modal'),
+            lyricsContainer: $('lyrics-container'),
+            lyricsTitle: $('lyrics-title'),
+            lyricsArtist: $('lyrics-artist'),
+            lyricsBtnPlay: $('lyrics-btn-play'),
+
+            // Mobile
+            mobileMenu: $('mobile-menu'),
+            mobileMenuPanel: $('mobile-menu-panel'),
+            navExplore: $('nav-explore')
+        };
+
+        // --- View Switching ---
+        window.switchTab = (tab) => {
+            if(tab === 'explore') {
+                dom.viewExplore.classList.remove('hidden');
+                dom.viewSearch.classList.add('hidden');
+                dom.navExplore.classList.add('bg-emerald-500', 'text-white', 'shadow-sm');
+                dom.navExplore.classList.remove('text-gray-600', 'hover:bg-gray-100');
+            } else if (tab === 'search') {
+                dom.viewExplore.classList.add('hidden');
+                dom.viewSearch.classList.remove('hidden');
+                dom.navExplore.classList.remove('bg-emerald-500', 'text-white', 'shadow-sm');
+                dom.navExplore.classList.add('text-gray-600', 'hover:bg-gray-100');
+            }
+        };
+        
+        window.toggleMobileMenu = () => {
+            dom.mobileMenu.classList.toggle('hidden');
+            const panel = dom.mobileMenuPanel;
+            if (dom.mobileMenu.classList.contains('hidden')) {
+                panel.classList.add('-translate-x-full');
+            } else {
+                setTimeout(() => panel.classList.remove('-translate-x-full'), 10);
+            }
+        };
+
+        window.toggleQueueMobile = () => {
+            dom.queuePanel.classList.remove('hidden');
+        };
+
+        // --- API Functions ---
+        async function fetchJSON(url) {
+            try { return await (await fetch(url)).json(); } 
+            catch (e) { console.error(e); return null; }
+        }
+
+        async function fetchTopLists() {
+            dom.toplistGrid.innerHTML = '<div class="col-span-full py-20 text-center text-gray-400"><i class="fa-solid fa-spinner fa-spin text-3xl mb-3"></i><p>Loading Charts...</p></div>';
+            const data = await fetchJSON(`${API_BASE}?source=${state.source}&type=toplists`);
+            renderTopLists(data?.data?.list || []);
+        }
+
+        async function fetchPlaylistById(id) {
+            const data = await fetchJSON(`${API_BASE}?type=playlist&id=${id}&source=${state.source}`);
+            const tracks = data?.data?.tracks || data?.data?.songs || data?.data?.list || [];
+            return tracks.map(normalizeTrack);
+        }
+        
+        async function fetchPlaylistByUrl(url) {
+             const data = await fetchJSON(url);
+             const tracks = data?.data?.tracks || data?.data?.songs || data?.data?.list || [];
+             return tracks.map(normalizeTrack);
+        }
+
+        async function search(keyword) {
+            dom.searchResults.innerHTML = '<div class="py-20 text-center text-gray-400"><i class="fa-solid fa-spinner fa-spin text-3xl mb-3"></i><p>Searching...</p></div>';
+            const data = await fetchJSON(`${API_BASE}?type=aggregateSearch&keyword=${encodeURIComponent(keyword)}&limit=20&page=1`);
+            state.searchResults = (data?.data?.results || []).map(normalizeTrack);
+            renderSearchResults();
+        }
+
+        const normalizeTrack = (t) => ({
+            id: t.id || t.songid || t.mid || "",
+            name: t.name || t.songname || t.title || "Unknown Title",
+            artist: t.artist || t.singer || (t.ar && t.ar[0]?.name) || "Unknown Artist",
+            album: t.album || (t.al && t.al.name) || "",
+            url: t.url || "",
+            pic: t.pic || (t.al && t.al.picUrl) || "",
+            lrc: t.lrc || "",
+            platform: t.platform || state.source,
+        });
+
+        // --- Rendering ---
+        function renderTopLists(lists) {
+            dom.toplistGrid.innerHTML = '';
+            if(!lists.length) {
+                dom.toplistGrid.innerHTML = '<div class="col-span-full text-center text-gray-400">No playlists found.</div>';
+                return;
+            }
+            lists.slice(0, 20).forEach(list => {
+                const el = document.createElement('div');
+                el.className = "group cursor-pointer active:scale-95 transition-transform";
+                el.innerHTML = `
+                    <div class="relative aspect-square rounded-xl overflow-hidden bg-gray-200 mb-2 md:mb-3 shadow-md">
+                        <img src="${list.pic}" loading="lazy" class="w-full h-full object-cover">
+                        <div class="absolute inset-0 bg-black/10"></div>
+                        <div class="absolute bottom-2 right-2 w-8 h-8 md:w-10 md:h-10 bg-white rounded-full flex items-center justify-center text-emerald-500 shadow-lg opacity-0 group-hover:opacity-100 transition-opacity">
+                            <i class="fa-solid fa-play ml-1"></i>
+                        </div>
+                    </div>
+                    <h3 class="font-bold text-gray-900 text-xs md:text-sm line-clamp-2 leading-tight mb-1">${list.name}</h3>
+                    <p class="text-[10px] text-gray-500">${list.updateFrequency || 'Playlist'}</p>
+                `;
+                el.onclick = async () => {
+                     el.style.opacity = 0.6; 
+                     try {
+                         const tracks = await fetchPlaylistByUrl(list.url);
+                         if(tracks.length) loadPlaylist(tracks);
+                     } catch(e) { alert('Failed to load.'); }
+                     el.style.opacity = 1;
+                };
+                dom.toplistGrid.appendChild(el);
+            });
+        }
+
+        function renderSearchResults() {
+            dom.searchResults.innerHTML = '';
+            if(!state.searchResults.length) {
+                dom.searchResults.innerHTML = '<div class="text-center py-10 text-gray-400">No results found.</div>';
+                return;
+            }
+            state.searchResults.forEach((track, i) => {
+                const el = document.createElement('div');
+                el.className = "flex items-center gap-3 md:gap-4 p-2 md:p-3 rounded-xl hover:bg-gray-50 transition-colors cursor-pointer active:bg-gray-100";
+                el.innerHTML = `
+                    <div class="w-10 h-10 md:w-12 md:h-12 rounded-lg bg-gray-200 overflow-hidden relative flex-shrink-0">
+                        <img src="${track.pic}" class="w-full h-full object-cover">
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <div class="font-bold text-gray-900 text-sm truncate">${track.name}</div>
+                        <div class="text-xs text-gray-500 truncate">${track.artist}</div>
+                    </div>
+                    <button class="w-8 h-8 rounded-full bg-gray-100 text-emerald-600 flex items-center justify-center" onclick="event.stopPropagation(); addToQueue(${i}, true)">
+                        <i class="fa-solid fa-plus text-xs"></i>
+                    </button>
+                `;
+                el.onclick = () => loadPlaylist(state.searchResults, i);
+                dom.searchResults.appendChild(el);
+            });
+        }
+
+        function renderQueue() {
+            dom.queueList.innerHTML = '';
+            dom.queueCount.textContent = state.playlist.length;
+            dom.queueCount.classList.toggle('hidden', state.playlist.length === 0);
+            
+            if(!state.playlist.length) {
+                dom.queueList.innerHTML = '<div class="text-center text-xs text-gray-400 py-10">Queue is empty</div>';
+                return;
+            }
+
+            state.playlist.forEach((track, i) => {
+                const isActive = i === state.currentIndex;
+                const el = document.createElement('div');
+                el.className = `flex items-center gap-3 p-2 rounded-lg cursor-pointer text-sm mb-1 ${isActive ? 'bg-emerald-50 text-emerald-700' : 'hover:bg-gray-50 text-gray-700'}`;
+                el.innerHTML = `
+                    <div class="w-4 text-xs font-mono text-gray-400 text-center">${isActive ? '<i class="fa-solid fa-play text-emerald-500 text-[10px]"></i>' : i+1}</div>
+                    <div class="flex-1 truncate font-medium">${track.name}</div>
+                    <div class="text-xs text-gray-400 truncate w-16 text-right">${track.artist}</div>
+                `;
+                el.onclick = () => playTrack(i);
+                dom.queueList.appendChild(el);
+            });
+        }
+
+        function addToQueue(index, fromSearch = true) {
+            const track = fromSearch ? state.searchResults[index] : null;
+            if(track) {
+                if(!state.playlist.some(t => t.id === track.id)) {
+                    state.playlist.push(track);
+                    renderQueue();
+                    // Mobile feedback
+                    const btn = document.querySelector('.fa-list-ul').parentElement;
+                    btn.classList.add('text-emerald-500');
+                    setTimeout(() => btn.classList.remove('text-emerald-500'), 500);
+                }
+            }
+        }
+
+        // --- Playback ---
+        function loadPlaylist(tracks, startIndex = 0) {
+            state.playlist = tracks;
+            renderQueue();
+            playTrack(startIndex);
+        }
+
+        function playTrack(index) {
+            if(index < 0 || index >= state.playlist.length) return;
+            state.currentIndex = index;
+            const track = state.playlist[index];
+            
+            // UI Update
+            dom.playerTitle.textContent = track.name;
+            dom.playerArtist.textContent = track.artist;
+            if(track.pic) {
+                dom.playerCover.src = track.pic;
+                dom.playerCover.classList.remove('hidden');
+                dom.playerPlaceholder.classList.add('hidden');
+            }
+            renderQueue();
+            
+            // Full Screen Lyrics UI
+            dom.lyricsTitle.textContent = track.name;
+            dom.lyricsArtist.textContent = track.artist;
+            loadLyrics(track);
+
+            // Audio Source
+            let url = track.url || "";
+            if (url && !url.includes('br=') && url.includes('type=url')) {
+                url += (url.includes('?') ? '&' : '?') + 'br=320k';
+            }
+            dom.audio.src = url;
+            dom.audio.play()
+                .then(() => { 
+                    state.isPlaying = true; 
+                    updatePlayBtn(); 
+                    updateMediaSession();
+                })
+                .catch(e => { 
+                    console.log("Play failed (interact first?)", e);
+                    state.isPlaying = false; 
+                    updatePlayBtn(); 
+                });
+        }
+
+        // --- Background Playback (Media Session) ---
+        function updateMediaSession() {
+            if (!('mediaSession' in navigator) || state.currentIndex === -1) return;
+            const track = state.playlist[state.currentIndex];
+            
+            navigator.mediaSession.metadata = new MediaMetadata({
+                title: track.name,
+                artist: track.artist,
+                album: track.album || '',
+                artwork: [
+                    { src: track.pic || '', sizes: '512x512', type: 'image/jpeg' }
+                ]
+            });
+
+            navigator.mediaSession.setActionHandler('play', () => { togglePlay(); });
+            navigator.mediaSession.setActionHandler('pause', () => { togglePlay(); });
+            navigator.mediaSession.setActionHandler('previoustrack', () => { playPrev(); });
+            navigator.mediaSession.setActionHandler('nexttrack', () => { playNext(); });
+        }
+
+        function updatePlayBtn() {
+            const icon = state.isPlaying ? '<i class="fa-solid fa-pause text-sm"></i>' : '<i class="fa-solid fa-play ml-0.5 text-sm"></i>';
+            dom.btnPlay.innerHTML = icon;
+            // Also update lyrics modal button
+            dom.lyricsBtnPlay.innerHTML = state.isPlaying ? '<i class="fa-solid fa-pause text-2xl"></i>' : '<i class="fa-solid fa-play ml-1 text-2xl"></i>';
+            
+            if('mediaSession' in navigator) {
+                navigator.mediaSession.playbackState = state.isPlaying ? "playing" : "paused";
+            }
+        }
+
+        function togglePlay() {
+            if(!state.playlist.length) return;
+            if(dom.audio.paused) {
+                dom.audio.play();
+                state.isPlaying = true;
+            } else {
+                dom.audio.pause();
+                state.isPlaying = false;
+            }
+            updatePlayBtn();
+        }
+
+        function playNext() {
+             let n = state.currentIndex + 1;
+             if(n >= state.playlist.length) n = 0;
+             playTrack(n);
+        }
+        function playPrev() {
+             let p = state.currentIndex - 1;
+             if(p < 0) p = state.playlist.length - 1;
+             playTrack(p);
+        }
+
+        // --- Lyrics ---
+        async function loadLyrics(track) {
+            state.lyrics = [];
+            dom.lyricsContainer.innerHTML = '<p class="mt-20 opacity-50">Loading lyrics...</p>';
+            
+            if(!track.lrc) {
+                 dom.lyricsContainer.innerHTML = '<p class="mt-20 opacity-50">No lyrics available.</p>';
+                 return;
+            }
+            try {
+                const text = await (await fetch(track.lrc)).text();
+                const lines = text.split('\n');
+                const regex = /\[(\d{2}):(\d{2})(\.\d{2,3})?\](.*)/;
+                state.lyrics = lines.map(line => {
+                    const match = line.match(regex);
+                    if(match) return {
+                        time: parseInt(match[1]) * 60 + parseInt(match[2]) + (match[3] ? parseFloat(match[3]) : 0),
+                        text: match[4].trim()
+                    };
+                    return null;
+                }).filter(Boolean);
+                
+                dom.lyricsContainer.innerHTML = '';
+                // Spacers for visual center
+                dom.lyricsContainer.appendChild(document.createElement('div')).className = "h-[40vh]";
+                
+                state.lyrics.forEach((line, i) => {
+                    const p = document.createElement('p');
+                    p.id = `lyric-${i}`;
+                    p.textContent = line.text;
+                    p.className = "py-3 text-lg transition-all duration-300 origin-center text-gray-400 font-medium";
+                    dom.lyricsContainer.appendChild(p);
+                });
+                
+                dom.lyricsContainer.appendChild(document.createElement('div')).className = "h-[40vh]";
+            } catch(e) {
+                dom.lyricsContainer.innerHTML = '<p class="mt-20 opacity-50">Lyrics error.</p>';
+            }
+        }
+        
+        window.toggleLyrics = () => {
+             dom.lyricsModal.classList.toggle('hidden');
+        };
+
+        // --- Event Listeners ---
+        dom.searchInput.onkeydown = (e) => {
+            if(e.key === 'Enter' && e.target.value.trim()) {
+                if(window.innerWidth < 768) dom.searchInput.blur(); // Close keyboard on mobile
+                switchTab('search');
+                search(e.target.value.trim());
+            }
+        };
+
+        dom.btnImport.onclick = async () => {
+            const id = dom.importInput.value.trim();
+            if(!id) return;
+            dom.btnImport.textContent = "...";
+            try {
+                const tracks = await fetchPlaylistById(id);
+                if(tracks.length) {
+                    loadPlaylist(tracks);
+                    dom.importInput.value = "";
+                } else alert('No tracks found.');
+            } catch(e) { alert('Error.'); }
+            dom.btnImport.textContent = "Load";
+        };
+
+        dom.sourceSelect.onchange = () => {
+            state.source = dom.sourceSelect.value;
+            if(!dom.viewExplore.classList.contains('hidden')) fetchTopLists();
+        };
+
+        dom.audio.onended = playNext;
+        dom.audio.ontimeupdate = () => {
+            const cur = dom.audio.currentTime || 0;
+            const dur = dom.audio.duration || 1;
+            const pct = (cur / dur) * 100;
+            
+            dom.progressBar.value = pct;
+            dom.progressFill.style.width = `${pct}%`;
+            if(dom.mobileProgressFill) dom.mobileProgressFill.style.width = `${pct}%`;
+            
+            dom.timeCurrent.textContent = formatTime(cur);
+            dom.timeTotal.textContent = formatTime(dur);
+
+            // Lyrics
+            if(state.lyrics.length && !dom.lyricsModal.classList.contains('hidden')) {
+                let idx = state.lyrics.findIndex((line, i) => {
+                    const next = state.lyrics[i+1];
+                    return cur >= line.time && (!next || cur < next.time);
+                });
+                if(idx !== -1) {
+                    const activeClass = ['text-gray-900', 'scale-110', 'font-bold'];
+                    const old = dom.lyricsContainer.querySelector('.text-gray-900');
+                    if(old) old.classList.remove(...activeClass);
+                    const el = document.getElementById(`lyric-${idx}`);
+                    if(el) {
+                        el.classList.add(...activeClass);
+                        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                }
+            }
+        };
+
+        dom.progressBar.oninput = (e) => {
+             const pct = e.target.value;
+             dom.progressFill.style.width = `${pct}%`;
+             dom.audio.currentTime = (pct / 100) * dom.audio.duration;
+        };
+
+        dom.btnPlay.onclick = togglePlay;
+        dom.btnNext.onclick = playNext;
+        dom.btnPrev.onclick = playPrev;
+
+        dom.btnQueueToggle.onclick = () => {
+            dom.queuePanel.classList.toggle('hidden');
+        };
+        dom.btnCloseQueue.onclick = () => {
+            dom.queuePanel.classList.add('hidden');
+        };
+
+        // Init
+        fetchTopLists();
+
+    </script>
+</body>
+</html>
