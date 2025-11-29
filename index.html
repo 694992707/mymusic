@@ -64,6 +64,8 @@ header {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
   flex-shrink: 0;
 }
 header .title {
@@ -347,7 +349,6 @@ main {
   height: 24px;
 }
 
-
 .slider-row {
   display: flex;
   align-items: center;
@@ -449,13 +450,28 @@ footer a:hover {
   text-decoration: underline;
 }
 
-/* --- 响应式 --- */
-@media (max-width: 900px) {
+/* --- 响应式适配 (移动端优先) --- */
+@media (max-width: 768px) {
+  body {
+    overflow: visible;
+  }
+  
+  header .title span {
+      display: none; /* 在小屏幕上隐藏副标题 */
+  }
+
   main {
     grid-template-columns: 1fr;
     height: auto;
-    overflow: auto;
+    overflow: visible;
+    padding: 10px;
+    gap: 10px;
   }
+
+  .panel {
+    padding: 12px;
+  }
+  
   .now-playing {
     flex-direction: column;
     align-items: center;
@@ -468,6 +484,25 @@ footer a:hover {
   }
   .now-meta {
     width: 100%;
+    gap: 8px;
+  }
+  .player-controls {
+    justify-content: center;
+  }
+
+  .list-item {
+    padding: 8px 10px;
+  }
+
+  .lyrics {
+    height: 120px;
+  }
+  
+  footer {
+    flex-direction: column;
+    text-align: center;
+    gap: 4px;
+    padding: 10px;
   }
 }
 </style>
@@ -534,9 +569,7 @@ footer a:hover {
              <svg viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"></path></svg>
           </button>
           <button id="btn-play" class="main" title="播放/暂停">
-            <!-- Play Icon -->
             <svg id="play-icon" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"></path></svg>
-            <!-- Pause Icon (hidden by default) -->
             <svg id="pause-icon" viewBox="0 0 24 24" style="display: none;"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"></path></svg>
           </button>
           <button id="btn-next" title="下一首">
@@ -575,7 +608,7 @@ footer a:hover {
 <audio id="audio" crossorigin="anonymous"></audio>
 
 <script>
-// JavaScript 代码与原版完全相同，以确保功能不变
+// JavaScript 代码与上一个版本基本相同，但增加了 Media Session API 的支持
 const API_BASE = "https://music-dl.sayqz.com/api/";
 
 const state = {
@@ -673,11 +706,9 @@ dom.audio.addEventListener("pause", () => {
 
 dom.audio.volume = parseFloat(dom.volume.value);
 
-// 初始加载榜单
 loadToplists();
 });
 
-// 通用请求
 async function fetchJSON(url) {
 const resp = await fetch(url);
 if (!resp.ok) throw new Error("请求失败: " + resp.status);
@@ -694,37 +725,21 @@ if (Array.isArray(data.results)) return data.results;
 return [];
 }
 
-// 搜索
 async function doSearch(keyword) {
 try {
 dom.searchBtn.disabled = true;
 dom.searchBtn.textContent = "搜索中...";
 dom.searchResults.innerHTML = "";
-
-const params = new URLSearchParams();
-params.set("type", state.searchMode);
-params.set("keyword", keyword);
-params.set("limit", "30");
-params.set("page", "1");
-
-if (state.searchMode === "search") {
-params.set("source", state.source);
-}
-
+const params = new URLSearchParams({ type: state.searchMode, keyword, limit: "30", page: "1" });
+if (state.searchMode === "search") params.set("source", state.source);
 const url = API_BASE + "?" + params.toString();
 const json = await fetchJSON(url);
-
 const data = json.data || {};
-const results = normalizeTrackList(data.results || data);
-
-state.searchResults = results || [];
+state.searchResults = normalizeTrackList(data.results || data) || [];
 renderSearchResults();
 } catch (err) {
 console.error(err);
-dom.searchResults.innerHTML =
-'<div class="list-item"><div class="list-main"><div class="list-title">搜索失败</div><div class="list-sub">' +
-(err.message || "未知错误") +
-"</div></div></div>";
+dom.searchResults.innerHTML = `<div class="list-item"><div class="list-main"><div class="list-title">搜索失败</div><div class="list-sub">${err.message || "未知错误"}</div></div></div>`;
 } finally {
 dom.searchBtn.disabled = false;
 dom.searchBtn.textContent = "搜索";
@@ -732,129 +747,76 @@ dom.searchBtn.textContent = "搜索";
 }
 
 function renderSearchResults() {
-const list = state.searchResults;
-if (!list.length) {
-dom.searchResults.innerHTML =
-'<div class="list-item"><div class="list-main"><div class="list-title">没有找到结果</div><div class="list-sub">尝试换个关键词～</div></div></div>';
+if (!state.searchResults.length) {
+dom.searchResults.innerHTML = `<div class="list-item"><div class="list-main"><div class="list-title">没有找到结果</div><div class="list-sub">尝试换个关键词～</div></div></div>`;
 return;
 }
+dom.searchResults.innerHTML = state.searchResults.map((track, index) => {
+const trackInfo = normalizeTrack(track);
+return `
+<div class="list-item" data-index="${index}">
+  <div class="list-main">
+    <div class="list-title">${trackInfo.name}</div>
+    <div class="list-sub">${trackInfo.artist} · ${trackInfo.album}</div>
+  </div>
+  <div class="list-actions">
+    <button class="btn-play-track">播放</button>
+    <button class="btn-add-track">加入歌单</button>
+    <span class="tag">${trackInfo.platform}</span>
+  </div>
+</div>`;
+}).join('');
 
-dom.searchResults.innerHTML = "";
-list.forEach((track, index) => {
-const item = document.createElement("div");
-item.className = "list-item";
-
-const main = document.createElement("div");
-main.className = "list-main";
-const title = document.createElement("div");
-title.className = "list-title";
-title.textContent = track.name || "未知歌曲";
-const sub = document.createElement("div");
-sub.className = "list-sub";
-sub.textContent =
-(track.artist || track.ar || track.singer || "未知歌手") +
-" · " +
-(track.album || track.al || "未知专辑");
-main.appendChild(title);
-main.appendChild(sub);
-
-const actions = document.createElement("div");
-actions.className = "list-actions";
-
-const btnPlay = document.createElement("button");
-btnPlay.textContent = "播放";
-btnPlay.addEventListener("click", (e) => {
-e.stopPropagation();
-setCurrentPlaylist([track], "单曲播放");
-playAt(0);
-});
-
-const btnAdd = document.createElement("button");
-btnAdd.textContent = "加入歌单";
-btnAdd.addEventListener("click", (e) => {
-e.stopPropagation();
-addToCurrentPlaylist(track);
-});
-
-const tag = document.createElement("span");
-tag.className = "tag";
-tag.textContent = track.platform || state.source;
-
-actions.appendChild(btnPlay);
-actions.appendChild(btnAdd);
-actions.appendChild(tag);
-
-item.appendChild(main);
-item.appendChild(actions);
-
-item.addEventListener("click", () => {
-// 点击整行：替换当前歌单并播放
-setCurrentPlaylist(list, "搜索结果：" + (dom.searchInput.value || ""));
-playAt(index);
-});
-
-dom.searchResults.appendChild(item);
+dom.searchResults.querySelectorAll('.list-item').forEach((item) => {
+    const index = parseInt(item.dataset.index, 10);
+    const track = state.searchResults[index];
+    item.querySelector('.btn-play-track').addEventListener('click', (e) => {
+        e.stopPropagation();
+        setCurrentPlaylist([track], "单曲播放");
+        playAt(0);
+    });
+    item.querySelector('.btn-add-track').addEventListener('click', (e) => {
+        e.stopPropagation();
+        addToCurrentPlaylist(track);
+    });
+    item.addEventListener('click', () => {
+        setCurrentPlaylist(state.searchResults, `搜索结果：${dom.searchInput.value || ""}`);
+        playAt(index);
+    });
 });
 }
 
-// 推荐榜单
 async function loadToplists() {
 try {
 dom.toplistContainer.innerHTML = "";
 dom.toplistSubtitle.textContent = "加载中...";
-const params = new URLSearchParams();
-params.set("source", state.source);
-params.set("type", "toplists");
+const params = new URLSearchParams({ source: state.source, type: 'toplists' });
 const url = API_BASE + "?" + params.toString();
 const json = await fetchJSON(url);
 const data = json.data || {};
-const list = data.list || [];
-
-state.toplists = list;
-dom.toplistSubtitle.textContent =
-"来自 " + (data.source || state.source) + " 的官方榜单";
+state.toplists = data.list || [];
+dom.toplistSubtitle.textContent = `来自 ${data.source || state.source} 的官方榜单`;
 renderToplists();
 } catch (err) {
 console.error(err);
-dom.toplistSubtitle.textContent = "加载失败：" + (err.message || "未知错误");
-dom.toplistContainer.innerHTML =
-'<div style="font-size:12px;color:#9ca3af;">无法加载榜单，稍后再试或更换平台。</div>';
+dom.toplistSubtitle.textContent = `加载失败：${err.message || "未知错误"}`;
 }
 }
 
 function renderToplists() {
-const list = state.toplists || [];
-if (!list.length) {
-dom.toplistContainer.innerHTML =
-'<div style="font-size:12px;color:#9ca3af;">当前平台暂时没有返回榜单。</div>';
+if (!state.toplists.length) {
+dom.toplistContainer.innerHTML = `<div style="font-size:12px;color:#9ca3af;">当前平台暂时没有返回榜单。</div>`;
 return;
 }
-dom.toplistContainer.innerHTML = "";
+dom.toplistContainer.innerHTML = state.toplists.slice(0, 30).map(top => `
+<div class="toplist-card" data-url="${top.url}" data-name="${top.name}">
+  <img class="toplist-cover" src="${top.pic || ''}" alt="${top.name || '榜单封面'}" loading="lazy">
+  <div class="toplist-name">${top.name || '未知榜单'}</div>
+  <div class="toplist-meta">${top.updateFrequency || ' '}</div>
+</div>`).join('');
 
-list.slice(0, 30).forEach((top) => {
-const card = document.createElement("div");
-card.className = "toplist-card";
-
-const img = document.createElement("img");
-img.className = "toplist-cover";
-img.src = top.pic || "";
-img.alt = top.name || "榜单封面";
-
-const name = document.createElement("div");
-name.className = "toplist-name";
-name.textContent = top.name || "未知榜单";
-
-const meta = document.createElement("div");
-meta.className = "toplist-meta";
-meta.textContent = top.updateFrequency || " ";
-
-card.appendChild(img);
-card.appendChild(name);
-card.appendChild(meta);
-
-card.addEventListener("click", () => loadToplistAsPlaylist(top));
-
-dom.toplistContainer.appendChild(card);
+dom.toplistContainer.querySelectorAll('.toplist-card').forEach(card => {
+card.addEventListener('click', () => loadToplistAsPlaylist({ url: card.dataset.url, name: card.dataset.name }));
 });
 }
 
@@ -864,21 +826,18 @@ try {
 dom.playlistInfo.textContent = "歌单加载中...";
 const json = await fetchJSON(top.url);
 const tracks = normalizeTrackList(json.data);
-
 if (!tracks.length) {
-dom.playlistInfo.textContent = "该榜单暂无可播放歌曲";
-return;
+  dom.playlistInfo.textContent = "该榜单暂无可播放歌曲";
+  return;
 }
-
 setCurrentPlaylist(tracks, top.name || "榜单歌单");
 playAt(0);
 } catch (err) {
 console.error(err);
-dom.playlistInfo.textContent = "加载榜单失败：" + (err.message || "未知错误");
+dom.playlistInfo.textContent = `加载榜单失败：${err.message || "未知错误"}`;
 }
 }
 
-// 当前歌单管理
 function setCurrentPlaylist(list, name) {
 state.currentPlaylist = (list || []).slice();
 state.currentPlaylistName = name || "";
@@ -893,11 +852,8 @@ setCurrentPlaylist([track], "临时歌单");
 playAt(0);
 return;
 }
-// 简单去重：按 id + 平台
 const key = track.id + "#" + (track.platform || state.source);
-const exists = state.currentPlaylist.some(
-(t) => t.id + "#" + (t.platform || state.source) === key
-);
+const exists = state.currentPlaylist.some(t => (t.id + "#" + (t.platform || state.source)) === key);
 if (!exists) {
 state.currentPlaylist.push(track);
 renderCurrentPlaylist();
@@ -905,67 +861,36 @@ renderCurrentPlaylist();
 }
 
 function renderCurrentPlaylist() {
-const list = state.currentPlaylist || [];
-if (!list.length) {
-dom.currentPlaylist.innerHTML =
-'<div class="list-item"><div class="list-main"><div class="list-title">暂无歌单</div><div class="list-sub">从左侧搜索结果或推荐歌单加载</div></div></div>';
+if (!state.currentPlaylist.length) {
+dom.currentPlaylist.innerHTML = `<div class="list-item"><div class="list-main"><div class="list-title">暂无歌单</div><div class="list-sub">从左侧搜索结果或推荐歌单加载</div></div></div>`;
 dom.playlistInfo.textContent = "暂无歌单";
 return;
 }
-dom.playlistInfo.textContent =
-(state.currentPlaylistName || "当前歌单") +
-" · " +
-list.length +
-" 首";
+dom.playlistInfo.textContent = `${state.currentPlaylistName || "当前歌单"} · ${state.currentPlaylist.length} 首`;
 
-dom.currentPlaylist.innerHTML = "";
-list.forEach((track, index) => {
-const item = document.createElement("div");
-item.className = "list-item";
-if (index === state.currentIndex) {
-item.classList.add("active");
-// 滚动到视图
-item.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+dom.currentPlaylist.innerHTML = state.currentPlaylist.map((track, index) => {
+const trackInfo = normalizeTrack(track);
+const isActive = index === state.currentIndex;
+return `
+<div class="list-item ${isActive ? 'active' : ''}" data-index="${index}">
+  <div class="list-main">
+    <div class="list-title">${index + 1}. ${trackInfo.name}</div>
+    <div class="list-sub">${trackInfo.artist} · ${trackInfo.album}</div>
+  </div>
+</div>`;
+}).join('');
+
+dom.currentPlaylist.querySelectorAll('.list-item').forEach(item => {
+item.addEventListener('click', () => playAt(parseInt(item.dataset.index, 10)));
+});
+
+const activeItem = dom.currentPlaylist.querySelector('.list-item.active');
+if (activeItem) {
+activeItem.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
 }
 
-const main = document.createElement("div");
-main.className = "list-main";
-const title = document.createElement("div");
-title.className = "list-title";
-title.textContent =
-(index + 1) + ". " + (track.name || "未知歌曲");
-const sub = document.createElement("div");
-sub.className = "list-sub";
-sub.textContent =
-(track.artist || "未知歌手") +
-" · " +
-(track.album || "未知专辑");
-main.appendChild(title);
-main.appendChild(sub);
-
-const actions = document.createElement("div");
-actions.className = "list-actions";
-
-const btnPlay = document.createElement("button");
-btnPlay.textContent = "播放";
-btnPlay.addEventListener("click", (e) => {
-e.stopPropagation();
-playAt(index);
-});
-actions.appendChild(btnPlay);
-
-item.appendChild(main);
-item.appendChild(actions);
-
-item.addEventListener("click", () => playAt(index));
-
-dom.currentPlaylist.appendChild(item);
-});
-}
-
-// 播放控制
 function playAt(index) {
-if (!state.currentPlaylist.length) return;
 if (index < 0 || index >= state.currentPlaylist.length) return;
 state.currentIndex = index;
 const track = state.currentPlaylist[index];
@@ -974,8 +899,7 @@ renderCurrentPlaylist();
 }
 
 function playOffset(offset) {
-if (!state.currentPlaylist.length) return;
-if (state.currentIndex < 0) return;
+if (!state.currentPlaylist.length || state.currentIndex < 0) return;
 let next = state.currentIndex + offset;
 if (next < 0) next = state.currentPlaylist.length - 1;
 if (next >= state.currentPlaylist.length) next = 0;
@@ -984,24 +908,16 @@ playAt(next);
 
 function togglePlayPause() {
 if (!state.currentPlaylist.length || state.currentIndex < 0) {
-  if (state.currentPlaylist.length) playAt(0);
-  return;
+if (state.currentPlaylist.length) playAt(0);
+return;
 }
-if (dom.audio.paused) {
-  dom.audio.play();
-} else {
-  dom.audio.pause();
-}
+dom.audio.paused ? dom.audio.play() : dom.audio.pause();
 }
 
 function updatePlayButton() {
-if (state.isPlaying) {
-  dom.playIcon.style.display = 'none';
-  dom.pauseIcon.style.display = 'inline-block';
-} else {
-  dom.playIcon.style.display = 'inline-block';
-  dom.pauseIcon.style.display = 'none';
-}
+const isPlaying = !dom.audio.paused;
+dom.playIcon.style.display = isPlaying ? 'none' : 'inline-block';
+dom.pauseIcon.style.display = isPlaying ? 'inline-block' : 'none';
 }
 
 function startPlay(rawTrack) {
@@ -1010,40 +926,35 @@ if (!track || !track.url) {
 dom.nowStatus.textContent = "无法播放：缺少音频 URL";
 return;
 }
-
 let playUrl = track.url;
 if (!/[\?&]br=/.test(playUrl) && /[\?&]type=url/.test(playUrl)) {
-const sep = playUrl.includes("?") ? "&" : "?";
-playUrl = playUrl + sep + "br=320k";
+playUrl += (playUrl.includes("?") ? "&" : "?") + "br=320k";
 }
-
 dom.audio.src = playUrl;
-dom.audio.play().catch((e) => {
+dom.audio.play().catch(e => {
 console.error(e);
-dom.nowStatus.textContent = "播放失败：" + (e.message || "未知错误");
+dom.nowStatus.textContent = `播放失败：${e.message || "未知错误"}`;
 });
-
-// 更新 UI
 dom.nowCover.src = track.pic || "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
-dom.nowTitle.textContent = track.name || "未知歌曲";
-document.title = `${track.name || "歌曲"} - ${track.artist || "歌手"}`;
-dom.nowArtist.textContent = track.artist || "未知歌手";
-dom.nowAlbum.textContent = track.album || "";
+dom.nowTitle.textContent = track.name;
+document.title = `${track.name} - ${track.artist}`;
+dom.nowArtist.textContent = track.artist;
+dom.nowAlbum.textContent = track.album;
 dom.nowStatus.textContent = "连接音频中...";
 dom.timeLabel.textContent = "00:00";
 dom.durationLabel.textContent = "00:00";
 dom.progress.value = 0;
-
 loadLyricsForTrack(track);
+updateMediaSession(track); // *** 新增：更新媒体会话 ***
 }
 
 function normalizeTrack(t) {
-if (!t) return null;
+if (!t) return {};
 return {
 id: t.id || t.songid || t.mid || "",
-name: t.name || t.songname || t.title || "",
-artist: t.artist || t.singer || (t.ar && t.ar[0] && t.ar[0].name) || "",
-album: t.album || (t.al && t.al.name) || "",
+name: t.name || t.songname || t.title || "未知歌曲",
+artist: t.artist || t.singer || (t.ar && t.ar[0] && t.ar[0].name) || "未知歌手",
+album: t.album || (t.al && t.al.name) || "未知专辑",
 url: t.url || "",
 pic: t.pic || (t.al && t.al.picUrl) || "",
 lrc: t.lrc || "",
@@ -1051,63 +962,66 @@ platform: t.platform || state.source,
 };
 }
 
-// 进度和时间
+// *** 新增：更新媒体会话API，用于后台播放和锁屏控制 ***
+function updateMediaSession(track) {
+  if ('mediaSession' in navigator) {
+    navigator.mediaSession.metadata = new MediaMetadata({
+      title: track.name,
+      artist: track.artist,
+      album: track.album,
+      artwork: [{ src: track.pic || '', sizes: '512x512', type: 'image/jpeg' }]
+    });
+
+    navigator.mediaSession.setActionHandler('play', () => togglePlayPause());
+    navigator.mediaSession.setActionHandler('pause', () => togglePlayPause());
+    navigator.mediaSession.setActionHandler('previoustrack', () => playOffset(-1));
+    navigator.mediaSession.setActionHandler('nexttrack', () => playOffset(1));
+  }
+}
+
 function onTimeUpdate() {
-const cur = dom.audio.currentTime || 0;
-const dur = dom.audio.duration || 0;
-if (!isNaN(cur) && !isNaN(dur) && dur > 0) {
-dom.progress.value = (cur / dur) * 100;
-dom.timeLabel.textContent = formatTime(cur);
+const { currentTime = 0, duration = 0 } = dom.audio;
+if (!isNaN(duration) && duration > 0) {
+dom.progress.value = (currentTime / duration) * 100;
+dom.timeLabel.textContent = formatTime(currentTime);
 }
 }
 
 function onLoadedMetadata() {
-const dur = dom.audio.duration || 0;
-dom.durationLabel.textContent = formatTime(dur);
+dom.durationLabel.textContent = formatTime(dom.audio.duration);
 }
 
 function onSeek() {
-const dur = dom.audio.duration || 0;
-if (!dur || isNaN(dur)) return;
-const pct = parseFloat(dom.progress.value) / 100;
-dom.audio.currentTime = dur * pct;
+if (isNaN(dom.audio.duration)) return;
+dom.audio.currentTime = (parseFloat(dom.progress.value) / 100) * dom.audio.duration;
 }
 
 function formatTime(sec) {
 sec = Math.floor(sec || 0);
 const m = String(Math.floor(sec / 60)).padStart(2, "0");
 const s = String(sec % 60).padStart(2, "0");
-return m + ":" + s;
+return `${m}:${s}`;
 }
 
-// 歌词
 async function loadLyricsForTrack(track) {
 dom.lyrics.textContent = "";
 dom.lyricsStatus.textContent = "加载中...";
-const cacheKey = track.platform + "#" + track.id;
+const cacheKey = `${track.platform}#${track.id}`;
 if (state.lyricsCache.has(cacheKey)) {
 dom.lyrics.textContent = state.lyricsCache.get(cacheKey);
 dom.lyricsStatus.textContent = "已缓存";
 return;
 }
-
 if (!track.lrc) {
 dom.lyricsStatus.textContent = "无歌词接口";
 dom.lyrics.textContent = "当前歌曲没有提供歌词地址。";
 return;
 }
-
 try {
 const resp = await fetch(track.lrc);
-if (!resp.ok) throw new Error("歌词请求失败：" + resp.status);
+if (!resp.ok) throw new Error(`歌词请求失败：${resp.status}`);
 const text = await resp.text();
-
-const lines = text.split(/\r?\n/);
-const cleaned = lines
-.map(line => line.replace(/\[\d{2}:\d{2}\.\d{2,3}\]/g, '').trim())
-.filter(line => line)
-.join("\n");
-
+const cleaned = text.split(/\r?\n/).map(line => line.replace(/\[\d{2}:\d{2}\.\d{2,3}\]/g, '').trim()).filter(Boolean).join("\n");
 const finalText = cleaned || "没有可用的歌词内容。";
 state.lyricsCache.set(cacheKey, finalText);
 dom.lyrics.textContent = finalText;
@@ -1115,8 +1029,7 @@ dom.lyricsStatus.textContent = "已加载";
 } catch (err) {
 console.error(err);
 dom.lyricsStatus.textContent = "歌词加载失败";
-dom.lyrics.textContent =
-"歌词加载失败：" + (err.message || "未知错误");
+dom.lyrics.textContent = `歌词加载失败：${err.message || "未知错误"}`;
 }
 }
 </script>
