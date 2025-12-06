@@ -3,7 +3,7 @@
 
 <head>
   <meta charset="UTF-8" />
-  <title>Mini Music - Fixed</title>
+  <title>Mini Music - Pro</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <style>
     :root {
@@ -23,20 +23,20 @@
       width: 100vw;
       display: flex;
       flex-direction: column;
-      overflow: hidden; /* 全局禁止滚动，交给内部容器处理 */
+      overflow: hidden;
       position: relative;
     }
 
     /* 背景层 */
     .ambient-bg { position: absolute; inset: 0; z-index: 0; overflow: hidden; background: #000; pointer-events: none; }
-    .ambient-bg img { width: 100%; height: 100%; object-fit: cover; filter: blur(80px) brightness(0.5); transform: scale(1.2); opacity: 0.8; }
+    .ambient-bg img { width: 100%; height: 100%; object-fit: cover; filter: blur(80px) brightness(0.5); transform: scale(1.2); opacity: 0.8; transition: opacity 1s; }
 
     /* UI 主层级 */
     .app-layer { position: relative; z-index: 10; display: flex; flex-direction: column; height: 100%; }
 
     /* 顶部导航 */
     .app-header {
-      height: 60px; flex-shrink: 0; /* 禁止压缩 */
+      height: 60px; flex-shrink: 0;
       padding: 0 20px; display: flex; align-items: center; justify-content: space-between;
       border-bottom: 1px solid rgba(255,255,255,0.05); background: rgba(0,0,0,0.2);
       backdrop-filter: blur(10px);
@@ -45,16 +45,15 @@
 
     /* 主布局 */
     .app-body {
-      flex: 1; /* 占据剩余空间 */
-      display: grid; grid-template-columns: 320px 1fr;
-      overflow: hidden; /* 防止溢出 */
+      flex: 1; display: grid; grid-template-columns: 320px 1fr;
+      overflow: hidden;
     }
 
     /* 桌面左侧 */
     .player-sidebar {
       padding: 30px; display: flex; flex-direction: column; align-items: center;
       background: rgba(0,0,0,0.2); border-right: 1px solid rgba(255,255,255,0.05);
-      overflow-y: auto; /* 允许小屏笔记本滚动侧边栏 */
+      overflow-y: auto;
     }
     .cd-wrapper { width: 220px; height: 220px; margin-bottom: 20px; flex-shrink: 0; }
     .cd-img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; box-shadow: 0 20px 40px rgba(0,0,0,0.4); animation: rotate 20s linear infinite paused; }
@@ -70,10 +69,10 @@
     input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 12px; width: 12px; border-radius: 50%; background: #fff; margin-top: -4px; transform: scale(1.2); }
 
     .controls-row { display: flex; align-items: center; justify-content: center; gap: 20px; width: 100%; }
-    .btn { background: none; border: none; cursor: pointer; color: #fff; padding: 5px; }
+    .btn { background: none; border: none; cursor: pointer; color: #fff; padding: 5px; display: flex; align-items: center; justify-content: center; }
     .btn:active { opacity: 0.7; transform: scale(0.95); }
     .btn svg { width: 26px; height: 26px; fill: currentColor; }
-    .btn-play { width: 60px; height: 60px; background: #fff; color: #000; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+    .btn-play { width: 60px; height: 60px; background: #fff; color: #000; border-radius: 50%; }
     .btn-play svg { width: 28px; height: 28px; margin-left: 2px; }
 
     /* 右侧内容区 */
@@ -82,27 +81,26 @@
     .tab-btn { background: none; border: none; color: rgba(255,255,255,0.5); font-size: 15px; font-weight: 600; padding: 10px 0; cursor: pointer; }
     .tab-btn.active { color: #fff; border-bottom: 2px solid var(--primary); }
 
-    /* 修复：View Container 必须处理滚动 */
     .view-container { 
-      flex: 1; 
-      overflow-y: auto; /* 关键：开启垂直滚动 */
-      -webkit-overflow-scrolling: touch; /* iOS 流畅滚动 */
-      padding: 20px; 
-      position: relative;
+      flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; 
+      padding: 20px; position: relative;
     }
     
-    .view-section { display: none; padding-bottom: 40px; } /* padding 防止底部被遮挡 */
+    .view-section { display: none; padding-bottom: 80px; }
     .view-section.active { display: block; animation: fadeUp 0.3s ease; }
     @keyframes fadeUp { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
 
-    /* 列表样式 */
-    .search-wrap { display: flex; background: rgba(255,255,255,0.1); border-radius: 8px; margin-bottom: 20px; }
-    .search-input { flex: 1; background: none; border: none; color: #fff; padding: 10px 15px; font-size: 16px; }
-    
+    /* 搜索框优化 */
+    .search-wrap { display: flex; background: rgba(255,255,255,0.1); border-radius: 8px; margin-bottom: 20px; align-items: center; }
+    .search-input { flex: 1; background: none; border: none; color: #fff; padding: 10px 15px; font-size: 16px; min-width: 0; }
+    .btn-clear { padding: 10px; color: #aaa; font-size: 18px; cursor: pointer; display: none; }
+    .search-input:valid + .btn-clear { display: block; } /* 只有输入时才显示 */
+
+    /* 列表与卡片 */
     .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 15px; }
     .card img { width: 100%; aspect-ratio: 1; border-radius: 8px; object-fit: cover; background: #333; margin-bottom: 6px; }
     
-    .list-item { display: flex; padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.05); align-items: center; }
+    .list-item { display: flex; padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.05); align-items: center; cursor: pointer; }
     .list-item:active { background: rgba(255,255,255,0.05); }
     .list-item.active .song-name { color: var(--primary); }
 
@@ -110,80 +108,54 @@
     .lrc-line { padding: 8px 0; color: rgba(255,255,255,0.4); font-size: 15px; transition: 0.3s; cursor: pointer; }
     .lrc-line.active { color: #fff; font-size: 20px; font-weight: bold; transform: scale(1.05); }
 
-    /* ===== 移动端适配与修复 ===== */
+    /* ===== 移动端适配 ===== */
     .mobile-mini-bar { display: none; }
     .mobile-full-player { display: none; }
 
     @media (max-width: 900px) {
-      .player-sidebar { display: none; } /* 隐藏桌面侧边栏 */
+      .player-sidebar { display: none; }
       
       .app-body {
-        display: block; /* 取消 Grid */
-        /* 关键修复 1：明确高度 = 视口 - 头部 - MiniPlayer */
+        display: block; 
         height: calc(100vh - 60px - 64px); 
         position: relative;
       }
 
-      /* 头部固定 */
-      .app-header {
-        position: relative; z-index: 20;
-      }
-
-      /* 内容区域填满并滚动 */
-      .view-container {
-        height: 100%; /* 填满 app-body */
-        padding: 15px;
-        overflow-y: scroll; /* 强制滚动 */
-      }
+      .app-header { position: relative; z-index: 20; }
+      .view-container { height: 100%; padding: 15px; overflow-y: scroll; }
       
-      /* 底部 Mini Bar */
+      /* 增强版 Mini Bar */
       .mobile-mini-bar {
         display: flex; position: fixed; bottom: 0; left: 0; right: 0; height: 64px;
-        background: #222; border-top: 1px solid #333; z-index: 50;
-        align-items: center; padding: 0 15px; padding-bottom: env(safe-area-inset-bottom);
-        cursor: pointer;
+        background: #1c1c1c; border-top: 1px solid #333; z-index: 50;
+        align-items: center; padding: 0 10px; padding-bottom: env(safe-area-inset-bottom);
+        box-shadow: 0 -5px 20px rgba(0,0,0,0.5);
       }
-      .mini-img { width: 40px; height: 40px; border-radius: 6px; margin-right: 12px; }
+      .mini-img { width: 44px; height: 44px; border-radius: 6px; margin-right: 10px; flex-shrink: 0; }
+      
+      /* Mini Controls */
+      .mini-controls { display: flex; gap: 10px; align-items: center; margin-left: 8px; }
+      .mini-btn { padding: 8px; color: #fff; background: none; border: none; }
+      .mini-btn svg { width: 22px; height: 22px; fill: #fff; }
 
-      /* 全屏播放器 (Modal) */
+      /* 全屏播放器 */
       .mobile-full-player {
         display: flex; flex-direction: column; 
-        position: fixed; inset: 0; z-index: 1000; /* 最高层级 */
+        position: fixed; inset: 0; z-index: 1000;
         background: #121212; 
         transform: translateY(100%); transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);
         padding: 0 20px 30px 20px;
-        /* 适配刘海屏 */
         padding-top: max(20px, env(safe-area-inset-top));
         padding-bottom: max(30px, env(safe-area-inset-bottom));
       }
       .mobile-full-player.open { transform: translateY(0); }
 
-      /* 关键修复 2：增加明确的拖拽/关闭指示器 */
-      .drag-indicator-area {
-        width: 100%; height: 40px; display: flex; align-items: center; justify-content: center;
-        flex-shrink: 0; cursor: pointer;
-      }
+      .drag-indicator-area { width: 100%; height: 40px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; cursor: pointer; }
       .drag-bar { width: 40px; height: 5px; background: rgba(255,255,255,0.2); border-radius: 10px; }
-
-      /* 顶部工具栏 */
       .mobile-top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-      
-      /* 加大关闭按钮触控区 */
-      .mobile-close-btn { 
-        padding: 10px; margin: -10px; 
-        color: #fff; background: transparent; border: none; 
-      }
-
-      .mobile-cover-wrap { 
-        width: 100%; aspect-ratio: 1; border-radius: 16px; overflow: hidden; 
-        margin-bottom: 30px; position: relative; box-shadow: 0 10px 40px rgba(0,0,0,0.5); 
-        flex-shrink: 0;
-      }
-      .mobile-lrc-overlay {
-        position: absolute; inset: 0; background: rgba(0,0,0,0.7); 
-        opacity: 0; pointer-events: none; transition: opacity 0.3s;
-        display: flex; align-items: center; justify-content: center;
-      }
+      .mobile-close-btn { padding: 10px; margin: -10px; color: #fff; background: transparent; border: none; }
+      .mobile-cover-wrap { width: 100%; aspect-ratio: 1; border-radius: 16px; overflow: hidden; margin-bottom: 30px; position: relative; box-shadow: 0 10px 40px rgba(0,0,0,0.5); flex-shrink: 0; }
+      .mobile-lrc-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.7); opacity: 0; pointer-events: none; transition: opacity 0.3s; display: flex; align-items: center; justify-content: center; }
       .show-lyrics .mobile-cover-img { opacity: 0.3; }
       .show-lyrics .mobile-lrc-overlay { opacity: 1; pointer-events: auto; }
       .mobile-lrc-box { width: 100%; height: 100%; overflow-y: auto; padding: 50% 0; text-align: center; }
@@ -221,14 +193,14 @@
           <span id="time-total">00:00</span>
         </div>
         <div class="controls-row">
-          <button id="btn-mode" class="btn"><svg id="icon-mode" viewBox="0 0 24 24"><path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z"/></svg></button>
+          <button id="btn-mode" class="btn"><svg id="icon-mode" viewBox="0 0 24 24"></svg></button>
           <button id="btn-prev" class="btn"><svg viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg></button>
           <button id="btn-play" class="btn btn-play"><svg id="icon-play" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></button>
           <button id="btn-next" class="btn"><svg viewBox="0 0 24 24"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg></button>
         </div>
       </aside>
 
-      <!-- 主内容 (移动端列表在此) -->
+      <!-- 主内容 -->
       <main class="content-area">
         <nav class="tabs">
           <button class="tab-btn active" onclick="switchTab('discover')">发现</button>
@@ -239,14 +211,15 @@
         <div class="view-container">
           <div id="tab-discover" class="view-section active">
             <div class="search-wrap">
-              <input id="search-input" class="search-input" placeholder="搜歌手、歌名..." />
-              <button onclick="doSearch()" style="background:var(--primary); border:none; color:#fff; padding:0 15px; border-radius:0 8px 8px 0; font-weight:bold;">Go</button>
+              <input id="search-input" class="search-input" type="search" placeholder="搜歌手、歌名..." autocomplete="off" />
+              <div class="btn-clear" onclick="clearSearch()">✕</div> <!-- 新增删除按钮 -->
+              <button onclick="doSearch()" style="background:var(--primary); border:none; color:#fff; padding:10px 15px; border-radius:0 8px 8px 0; font-weight:bold; height:100%;">Go</button>
             </div>
             <div id="toplist-grid" class="grid"></div>
           </div>
 
           <div id="tab-playlist" class="view-section">
-            <div id="playlist-box" style="padding-bottom:80px;">
+            <div id="playlist-box">
                 <div style="text-align:center; padding:50px; opacity:0.5">暂无歌曲</div>
             </div>
           </div>
@@ -259,34 +232,38 @@
     </div>
   </div>
 
-  <!-- 移动端 Mini Bar (底部) -->
-  <div class="mobile-mini-bar" id="mini-bar" onclick="toggleMobilePlayer(true)">
-    <img id="mini-cover" class="mini-img" src="https://via.placeholder.com/100" />
-    <div style="flex:1; overflow:hidden; padding-right:10px;">
-      <div id="mini-title" style="color:#fff; font-size:14px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Ready</div>
-      <div id="mini-artist" style="color:#aaa; font-size:12px;">Mini Music</div>
+  <!-- 移动端 Mini Bar (增强版) -->
+  <div class="mobile-mini-bar" id="mini-bar">
+    <div style="display:flex; align-items:center; flex:1; overflow:hidden;" onclick="toggleMobilePlayer(true)">
+      <img id="mini-cover" class="mini-img" src="https://via.placeholder.com/100" />
+      <div style="flex:1; overflow:hidden; padding-right:5px;">
+        <div id="mini-title" style="color:#fff; font-size:14px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Ready</div>
+        <div id="mini-artist" style="color:#aaa; font-size:12px;">Mini Music</div>
+      </div>
     </div>
-    <button id="mini-play-btn" class="btn" style="font-size:20px; padding:10px;">▶</button>
+    <!-- 增加 Mini 控制按钮 -->
+    <div class="mini-controls">
+        <button id="mini-btn-prev" class="mini-btn"><svg viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg></button>
+        <button id="mini-btn-play" class="mini-btn" style="padding:4px; border:1px solid #555; border-radius:50%;"><svg id="mini-icon-play" viewBox="0 0 24 24" style="width:20px;height:20px;"><path d="M8 5v14l11-7z"/></svg></button>
+        <button id="mini-btn-next" class="mini-btn"><svg viewBox="0 0 24 24"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg></button>
+        <button id="mini-btn-mode" class="mini-btn"><svg id="mini-icon-mode" viewBox="0 0 24 24" style="opacity:0.7"></svg></button>
+    </div>
   </div>
 
   <!-- 移动端 全屏播放器 -->
   <div class="mobile-full-player" id="mobile-player">
-    <!-- 修复：新增顶部拖拽条，点击可收起 -->
     <div class="drag-indicator-area" onclick="toggleMobilePlayer(false)">
         <div class="drag-bar"></div>
     </div>
 
-    <!-- 顶部栏 -->
     <div class="mobile-top-bar">
-      <!-- 修复：加大按钮点击区域 -->
       <button class="mobile-close-btn" onclick="toggleMobilePlayer(false)">
         <svg viewBox="0 0 24 24" width="32" height="32" fill="#fff"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/></svg>
       </button>
       <div style="color:rgba(255,255,255,0.7); font-size:14px;">正在播放</div>
-      <div style="width:32px;"></div> <!-- 占位 -->
+      <div style="width:32px;"></div>
     </div>
 
-    <!-- 封面区域 -->
     <div class="mobile-cover-wrap" onclick="toggleMobileLyrics()">
       <img id="mobile-cover" class="mobile-cover-img" src="https://via.placeholder.com/300" style="width:100%; height:100%; object-fit:cover;" />
       <div class="mobile-lrc-overlay">
@@ -294,13 +271,11 @@
       </div>
     </div>
 
-    <!-- 歌曲信息 -->
     <div style="margin-bottom:20px;">
       <div id="m-title" style="font-size:24px; font-weight:bold; color:#fff; margin-bottom:5px; line-height:1.2;">Title</div>
       <div id="m-artist" style="font-size:16px; color:var(--primary);">Artist</div>
     </div>
 
-    <!-- 底部控件 -->
     <div style="margin-top:auto;">
       <div class="progress-box">
         <span id="m-time-curr">00:00</span>
@@ -309,11 +284,11 @@
       </div>
       
       <div class="controls-row" style="justify-content: space-between; padding:0 10px;">
-        <button id="m-btn-mode" class="btn" style="padding:10px;"><svg id="m-icon-mode" viewBox="0 0 24 24" style="width:24px;height:24px; opacity:0.6;"><path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z"/></svg></button>
+        <button id="m-btn-mode" class="btn" style="padding:10px;"><svg id="m-icon-mode" viewBox="0 0 24 24" style="width:24px;height:24px; opacity:0.6;"></svg></button>
         <button id="m-btn-prev" class="btn"><svg viewBox="0 0 24 24" style="width:40px;height:40px;"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg></button>
         <button id="m-btn-play" class="btn btn-play" style="width:70px;height:70px;"><svg id="m-icon-play" viewBox="0 0 24 24" style="width:32px;height:32px;"><path d="M8 5v14l11-7z"/></svg></button>
         <button id="m-btn-next" class="btn"><svg viewBox="0 0 24 24" style="width:40px;height:40px;"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg></button>
-        <div style="width:44px;"></div> <!-- 占位平衡布局 -->
+        <div style="width:44px;"></div>
       </div>
     </div>
   </div>
@@ -343,17 +318,23 @@
       const audio = $('audio');
       
       const toggle = (e) => { e?.stopPropagation(); state.isPlaying ? pause() : play(); };
-      $('btn-play').onclick = toggle;
-      $('m-btn-play').onclick = toggle;
-      $('mini-play-btn').onclick = toggle;
+      // 绑定所有播放按钮
+      ['btn-play', 'm-btn-play', 'mini-btn-play'].forEach(id => {
+         const el = $(id); if(el) el.onclick = toggle;
+      });
 
-      const prev = () => playIndex(getNextIndex(-1));
-      const next = () => playIndex(getNextIndex(1));
-      $('btn-prev').onclick = prev; $('m-btn-prev').onclick = prev;
-      $('btn-next').onclick = next; $('m-btn-next').onclick = next;
+      const prev = (e) => { e?.stopPropagation(); playIndex(getNextIndex(-1)); };
+      const next = (e) => { e?.stopPropagation(); playIndex(getNextIndex(1)); };
+      
+      ['btn-prev', 'm-btn-prev', 'mini-btn-prev'].forEach(id => $(id).onclick = prev);
+      ['btn-next', 'm-btn-next', 'mini-btn-next'].forEach(id => $(id).onclick = next);
+
+      const toggleMode = (e) => { e?.stopPropagation(); state.mode = (state.mode + 1) % 3; setupModeIcons(); };
+      ['btn-mode', 'm-btn-mode', 'mini-btn-mode'].forEach(id => $(id).onclick = toggleMode);
 
       const seek = (e) => { if(audio.duration) audio.currentTime = (e.target.value/100)*audio.duration; };
       $('progress').oninput = seek; $('m-progress').oninput = seek;
+      
       $('search-input').onkeydown = (e) => e.key === 'Enter' && doSearch();
 
       audio.ontimeupdate = onTimeUpdate;
@@ -365,8 +346,6 @@
         $('time-total').innerText = t; $('m-time-total').innerText = t;
       };
 
-      const toggleMode = () => { state.mode = (state.mode + 1) % 3; setupModeIcons(); };
-      $('btn-mode').onclick = toggleMode; $('m-btn-mode').onclick = toggleMode;
       $('source-select').onchange = (e) => { state.source = e.target.value; loadToplists(); };
     }
 
@@ -377,7 +356,7 @@
         const u = new URL(API_BASE);
         Object.keys(params).forEach(k => u.searchParams.append(k, params[k]));
         return await (await fetch(u)).json();
-      } catch(e) { return null; }
+      } catch(e) { console.error(e); return null; }
     }
 
     async function loadToplists() {
@@ -390,28 +369,48 @@
           const div = document.createElement('div');
           div.className = 'card';
           div.innerHTML = `<img src="${item.pic}" loading="lazy"><div style="font-size:12px;margin-top:5px;color:#fff;">${item.name}</div>`;
-          div.onclick = () => loadDetail(item.url);
+          // 修复：不直接使用 url，而是通过 id 或名字搜索
+          div.onclick = () => loadToplistDetail(item);
           grid.appendChild(div);
         });
       }
     }
 
+    // 修复数据获取：优先使用 API id 获取，如果失败则搜索名字
+    async function loadToplistDetail(item) {
+        const id = item.id.split('_').pop(); // 尝试提取ID
+        $('list-count').innerText = '(Loading...)';
+        
+        // 尝试用 playlist 接口获取 (解决代理问题)
+        let list = [];
+        let res = await fetchAPI({ type: 'playlist', id: id });
+        
+        if (res && res.code === 200 && (res.data || res.song_list)) {
+            list = res.data || res.song_list || [];
+        } else {
+            // 如果 ID 获取失败，回退到搜索该榜单名字
+            $('search-input').value = item.name;
+            doSearch();
+            return;
+        }
+        renderPlaylist(list);
+    }
+
+    function clearSearch() {
+        $('search-input').value = '';
+        $('search-input').focus();
+    }
+
     async function doSearch() {
       const kw = $('search-input').value;
       if(!kw) return;
-      $('list-count').innerText = '(...)';
+      $('list-count').innerText = '(Searching...)';
       const res = await fetchAPI({ type: 'search', keyword: kw });
       renderPlaylist(res?.data?.list || res?.data?.results || []);
     }
 
-    async function loadDetail(url) {
-        try {
-            const res = await (await fetch(url)).json();
-            renderPlaylist(res.song_list || res.data?.list || []);
-        } catch(e) { alert('此榜单需要代理，请尝试搜索功能'); }
-    }
-
     function renderPlaylist(list) {
+      if(!list || !list.length) { $('playlist-box').innerHTML = '<div style="padding:20px; text-align:center">无结果</div>'; return; }
       state.playlist = list;
       state.index = -1;
       $('list-count').innerText = `(${list.length})`;
@@ -421,17 +420,31 @@
         const div = document.createElement('div');
         div.className = 'list-item';
         div.id = `track-${i}`;
+        // 修复：智能解析歌手名
+        const artistName = getArtistName(item);
+        
         div.innerHTML = `
           <div style="font-size:14px; color:#aaa; width:30px; text-align:center;">${i+1}</div>
           <div style="flex:1;">
             <div class="song-name" style="color:#fff; font-size:15px; margin-bottom:2px;">${item.name || item.title}</div>
-            <div style="font-size:12px; color:#666;">${item.artist || item.singer}</div>
+            <div style="font-size:12px; color:#666;">${artistName}</div>
           </div>
         `;
         div.onclick = () => playIndex(i);
         box.appendChild(div);
       });
       switchTab('playlist');
+    }
+
+    // 修复：处理 QQ 音乐等复杂的歌手数据结构
+    function getArtistName(item) {
+        if (typeof item.artist === 'string') return item.artist;
+        if (typeof item.singer === 'string') return item.singer;
+        // 处理数组情况
+        if (Array.isArray(item.singer)) return item.singer.map(s => s.name).join(' / ');
+        if (Array.isArray(item.ar)) return item.ar.map(s => s.name).join(' / ');
+        if (Array.isArray(item.artists)) return item.artists.map(s => s.name).join(' / ');
+        return '未知歌手';
     }
 
     function playIndex(i) {
@@ -443,7 +456,7 @@
       const song = state.playlist[i];
       const meta = {
         name: song.name || song.title,
-        artist: song.artist || song.singer,
+        artist: getArtistName(song),
         pic: song.pic || song.al?.picUrl || 'https://via.placeholder.com/300',
         url: song.url, id: song.id || song.mid, lrc: song.lrc
       };
@@ -462,6 +475,8 @@
     function updateMeta(meta) {
       $('track-title').innerText = meta.name; $('track-artist').innerText = meta.artist;
       $('cover-img').src = meta.pic; $('bg-img').src = meta.pic;
+      
+      // 更新 Mini Bar 和 Full Player
       $('mini-title').innerText = meta.name; $('mini-artist').innerText = meta.artist;
       $('mini-cover').src = meta.pic;
       $('m-title').innerText = meta.name; $('m-artist').innerText = meta.artist;
@@ -471,8 +486,8 @@
         navigator.mediaSession.metadata = new MediaMetadata({ title: meta.name, artist: meta.artist, artwork: [{ src: meta.pic }] });
         navigator.mediaSession.setActionHandler('play', play);
         navigator.mediaSession.setActionHandler('pause', pause);
-        navigator.mediaSession.setActionHandler('previoustrack', () => $('btn-prev').click());
-        navigator.mediaSession.setActionHandler('nexttrack', () => $('btn-next').click());
+        navigator.mediaSession.setActionHandler('previoustrack', () => playIndex(getNextIndex(-1)));
+        navigator.mediaSession.setActionHandler('nexttrack', () => playIndex(getNextIndex(1)));
       }
     }
 
@@ -481,13 +496,16 @@
     
     function updatePlayState(playing) {
       state.isPlaying = playing;
-      const path = playing ? "M6 19h4V5H6v14zm8-14v14h4V5h-4z" : "M8 5v14l11-7z";
+      const pathPlay = "M8 5v14l11-7z";
+      const pathPause = "M6 19h4V5H6v14zm8-14v14h4V5h-4z";
+      const path = playing ? pathPause : pathPlay;
+      
       $('icon-play').innerHTML = `<path d="${path}"/>`;
       $('m-icon-play').innerHTML = `<path d="${path}"/>`;
-      $('mini-play-btn').innerText = playing ? '⏸' : '▶';
+      $('mini-icon-play').innerHTML = `<path d="${path}"/>`; // Mini bar SVG 更新
+      
       const method = playing ? 'add' : 'remove';
       $('desktop-sidebar').classList[method]('playing');
-      $('mini-cover').classList[method]('playing');
     }
 
     function getNextIndex(dir) {
@@ -501,14 +519,18 @@
     }
 
     function setupModeIcons() {
+      // 0:Loop, 1:One, 2:Shuffle
       const icons = [
         "M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z",
-        "M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z", // 单曲复用图标，加文字区分
+        "M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z",
         "M10.59 9.17L5.41 4 4 5.41l5.17 5.17 1.42-1.41zM14.5 4l2.04 2.04L4 18.59 5.41 20 17.96 7.46 20 9.5V4h-5.5zm.33 9.41l-1.41 1.41 3.13 3.13L14.5 20H20v-5.5l-2.04 2.04-3.13-3.13z"
       ];
-      const html = `<path d="${icons[state.mode]}"/>` + (state.mode===1 ? `<text x="10" y="16" fill="white" font-size="8" font-weight="bold">1</text>` : ``);
+      const extra = state.mode===1 ? `<text x="10" y="16" fill="currentColor" font-size="8" font-weight="bold">1</text>` : ``;
+      const html = `<path d="${icons[state.mode]}"/>` + extra;
+      
       $('icon-mode').innerHTML = html;
       $('m-icon-mode').innerHTML = html;
+      $('mini-icon-mode').innerHTML = html; // Mini bar mode
     }
 
     async function loadLyrics(url) {
